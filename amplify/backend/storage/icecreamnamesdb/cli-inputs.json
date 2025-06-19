@@ -1,0 +1,10 @@
+{
+  "resourceName": "icecreamnamesdb",
+  "tableName": "icecreamnamestable",
+  "partitionKey": {
+    "fieldName": "id",
+    "fieldType": "string"
+  },
+  "gsi": [],
+  "triggerFunctions": []
+}

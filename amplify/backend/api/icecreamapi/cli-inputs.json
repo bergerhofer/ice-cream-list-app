@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "paths": {
+    "/icecream": {
+      "name": "/icecream",
+      "lambdaFunction": "icecreamlambda",
+      "permissions": {
+        "setting": "open"
+      }
+    }
+  }
+}

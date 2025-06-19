@@ -1,0 +1,31 @@
+{
+  "bucketName": "creamy-s3-storage-dev",
+  "selectedGuestPermissions": [],
+  "selectedAuthenticatedPermissions": [
+    "s3:PutObject",
+    "s3:GetObject",
+    "s3:ListBucket",
+    "s3:DeleteObject"
+  ],
+  "unauthRoleName": {
+    "Ref": "UnauthRoleName"
+  },
+  "authRoleName": {
+    "Ref": "AuthRoleName"
+  },
+  "s3PrivatePolicy": "Private_policy_<%= authRoleName %>",
+  "s3ProtectedPolicy": "Protected_policy_<%= authRoleName %>",
+  "s3PublicPolicy": "Public_policy_<%= authRoleName %>",
+  "s3ReadPolicy": "read_policy_<%= authRoleName %>",
+  "s3UploadsPolicy": "uploads_policy_<%= authRoleName %>",
+  "authPolicyName": "s3_amplify_<%= authRoleName %>",
+  "unauthPolicyName": "s3_amplify_<%= unauthRoleName %>",
+  "AuthenticatedAllowList": "ALLOW",
+  "GuestAllowList": "DISALLOW",
+  "s3PermissionsAuthenticatedPrivate": "DISALLOW",
+  "s3PermissionsAuthenticatedProtected": "DISALLOW",
+  "s3PermissionsAuthenticatedPublic": "DISALLOW",
+  "s3PermissionsAuthenticatedUploads": "DISALLOW",
+  "s3PermissionsGuestPublic": "DISALLOW",
+  "s3PermissionsGuestUploads": "DISALLOW"
+} 

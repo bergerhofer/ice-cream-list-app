@@ -1,0 +1,36 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-creamy-dev-9a13b-authRole",
+      "UnauthRoleArn": "arn:aws:iam::762595428843:role/amplify-creamy-dev-9a13b-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::762595428843:role/amplify-creamy-dev-9a13b-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-creamy-dev-9a13b-deployment",
+      "UnauthRoleName": "amplify-creamy-dev-9a13b-unauthRole",
+      "StackName": "amplify-creamy-dev-9a13b",
+      "StackId": "arn:aws:cloudformation:us-east-1:762595428843:stack/amplify-creamy-dev-9a13b/a2aac310-4d5e-11f0-883c-120ac9d9eee1",
+      "AmplifyAppId": "d3jond4ntptudw"
+    },
+    "categories": {
+      "auth": {
+        "creamy50cf6f15": {}
+      },
+      "function": {
+        "S3Trigger9b19f873": {
+          "deploymentBucketName": "amplify-creamy-dev-9a13b-deployment",
+          "s3Key": "amplify-builds/S3Trigger9b19f873-6d387945773570624947-build.zip"
+        },
+        "icecreamlambda": {
+          "deploymentBucketName": "amplify-creamy-dev-9a13b-deployment",
+          "s3Key": "amplify-builds/icecreamlambda-5a6f50516334742f5a37-build.zip"
+        }
+      },
+      "storage": {
+        "icecreamnamesdb": {}
+      },
+      "api": {
+        "icecreamapi": {}
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   SafeAreaView,
   Text,
@@ -16,14 +16,49 @@ import {
   TextInput,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+
+// API configuration
+const API_BASE_URL = 'https://0snjzvy2ca.execute-api.us-east-1.amazonaws.com/dev';
+
+interface IceCreamFlavor {
+  id: string;
+  name: string;
+}
 
 function App(): React.JSX.Element {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newFlavor, setNewFlavor] = useState('');
-  const [iceCreamList, setIceCreamList] = useState<string[]>([]);
+  const [iceCreamList, setIceCreamList] = useState<IceCreamFlavor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingFlavor, setAddingFlavor] = useState(false);
 
-  const addIceCream = () => {
+  // Fetch ice cream flavors from API
+  const fetchIceCreamFlavors = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/icecream`);
+      if (response.ok) {
+        const data = await response.json();
+        setIceCreamList(data || []);
+      } else {
+        Alert.alert('Error', 'Failed to load ice cream flavors');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error while loading flavors');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load flavors on app start
+  useEffect(() => {
+    fetchIceCreamFlavors();
+  }, []);
+
+  // Add new ice cream flavor to API
+  const addIceCream = async () => {
     const trimmedFlavor = newFlavor.trim();
     
     // Check for empty input
@@ -58,7 +93,7 @@ function App(): React.JSX.Element {
     
     // Check if flavor already exists (case-insensitive)
     const flavorExists = iceCreamList.some(
-      flavor => flavor.toLowerCase() === trimmedFlavor.toLowerCase()
+      flavor => flavor.name.toLowerCase() === trimmedFlavor.toLowerCase()
     );
     
     if (flavorExists) {
@@ -75,9 +110,34 @@ function App(): React.JSX.Element {
       return;
     }
     
-    setIceCreamList([...iceCreamList, trimmedFlavor]);
-    setNewFlavor('');
-    setIsModalVisible(false);
+    try {
+      setAddingFlavor(true);
+      const newId = Date.now().toString(); // Generate unique ID
+      const newFlavorData = {
+        id: newId,
+        name: trimmedFlavor,
+      };
+      
+      const response = await fetch(`${API_BASE_URL}/icecream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newFlavorData),
+      });
+      
+      if (response.ok) {
+        setIceCreamList([...iceCreamList, newFlavorData]);
+        setNewFlavor('');
+        setIsModalVisible(false);
+      } else {
+        Alert.alert('Error', 'Failed to add ice cream flavor');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error while adding flavor');
+    } finally {
+      setAddingFlavor(false);
+    }
   };
 
   const closeModal = () => {
@@ -85,10 +145,11 @@ function App(): React.JSX.Element {
     setIsModalVisible(false);
   };
 
-  const deleteIceCream = (index: number) => {
+  // Delete ice cream flavor from API
+  const deleteIceCream = (flavor: IceCreamFlavor) => {
     Alert.alert(
       'Delete Ice Cream',
-      `Are you sure you want to delete "${iceCreamList[index]}"?`,
+      `Are you sure you want to delete "${flavor.name}"?`,
       [
         {
           text: 'Cancel',
@@ -97,25 +158,48 @@ function App(): React.JSX.Element {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            const newList = iceCreamList.filter((_, i) => i !== index);
-            setIceCreamList(newList);
+          onPress: async () => {
+            try {
+              const response = await fetch(`${API_BASE_URL}/icecream/object/${flavor.id}`, {
+                method: 'DELETE',
+              });
+              
+              if (response.ok) {
+                const newList = iceCreamList.filter(item => item.id !== flavor.id);
+                setIceCreamList(newList);
+              } else {
+                Alert.alert('Error', 'Failed to delete ice cream flavor');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Network error while deleting flavor');
+            }
           },
         },
       ]
     );
   };
 
-  const renderIceCreamItem = ({item, index}: {item: string; index: number}) => (
+  const renderIceCreamItem = ({item}: {item: IceCreamFlavor}) => (
     <View style={styles.listItem}>
-      <Text style={styles.listItemText}>{item}</Text>
+      <Text style={styles.listItemText}>{item.name}</Text>
       <TouchableOpacity
         style={styles.deleteButton}
-        onPress={() => deleteIceCream(index)}>
+        onPress={() => deleteIceCream(item)}>
         <Text style={styles.deleteButtonText}>×</Text>
       </TouchableOpacity>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF69B4" />
+          <Text style={styles.loadingText}>Loading ice cream flavors...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,7 +216,7 @@ function App(): React.JSX.Element {
       <FlatList
         data={iceCreamList}
         renderItem={renderIceCreamItem}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item) => item.id}
         style={styles.list}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No ice cream flavors yet!</Text>
@@ -154,16 +238,27 @@ function App(): React.JSX.Element {
               onChangeText={setNewFlavor}
               maxLength={45}
               autoFocus={true}
+              editable={!addingFlavor}
             />
             <Text style={styles.charCount}>
               {newFlavor.length}/45 characters
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
+              <TouchableOpacity 
+                style={[styles.cancelButton, addingFlavor && styles.disabledButton]} 
+                onPress={closeModal}
+                disabled={addingFlavor}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={addIceCream}>
-                <Text style={styles.saveButtonText}>Add</Text>
+              <TouchableOpacity 
+                style={[styles.saveButton, addingFlavor && styles.disabledButton]} 
+                onPress={addIceCream}
+                disabled={addingFlavor}>
+                {addingFlavor ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Add</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -177,6 +272,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     flexDirection: 'row',
@@ -288,6 +393,8 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelButtonText: {
     textAlign: 'center',
@@ -301,12 +408,17 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveButtonText: {
     textAlign: 'center',
     fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   charCount: {
     textAlign: 'right',
