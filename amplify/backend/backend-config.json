@@ -45,11 +45,6 @@
     }
   },
   "function": {
-    "S3Trigger9b19f873": {
-      "build": true,
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
     "icecreamlambda": {
       "build": true,
       "dependsOn": [
@@ -71,22 +66,6 @@
     }
   },
   "parameters": {
-    "AMPLIFY_function_S3Trigger9b19f873_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "S3Trigger9b19f873"
-        }
-      ]
-    },
-    "AMPLIFY_function_S3Trigger9b19f873_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "S3Trigger9b19f873"
-        }
-      ]
-    },
     "AMPLIFY_function_icecreamlambda_deploymentBucketName": {
       "usedBy": [
         {

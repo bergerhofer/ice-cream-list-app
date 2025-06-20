@@ -18,13 +18,6 @@ export type AmplifyDependentResourcesAttributes = {
     }
   },
   "function": {
-    "S3Trigger9b19f873": {
-      "Arn": "string",
-      "LambdaExecutionRole": "string",
-      "LambdaExecutionRoleArn": "string",
-      "Name": "string",
-      "Region": "string"
-    },
     "icecreamlambda": {
       "Arn": "string",
       "LambdaExecutionRole": "string",

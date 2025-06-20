@@ -16,10 +16,6 @@
         "creamy50cf6f15": {}
       },
       "function": {
-        "S3Trigger9b19f873": {
-          "deploymentBucketName": "amplify-creamy-dev-9a13b-deployment",
-          "s3Key": "amplify-builds/S3Trigger9b19f873-6d387945773570624947-build.zip"
-        },
         "icecreamlambda": {
           "deploymentBucketName": "amplify-creamy-dev-9a13b-deployment",
           "s3Key": "amplify-builds/icecreamlambda-5a6f50516334742f5a37-build.zip"
