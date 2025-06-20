@@ -22,7 +22,7 @@ if (process.env.ENV && process.env.ENV !== "NONE") {
   tableName = tableName + '-' + process.env.ENV;
 }
 
-const userIdPresent = false; // TODO: update in case is required to use that definition
+const userIdPresent = true; // TODO: update in case is required to use that definition
 const partitionKeyName = "id";
 const partitionKeyType = "S";
 const sortKeyName = "";
@@ -64,6 +64,14 @@ app.get(path, async function(req, res) {
     TableName: tableName,
     Select: 'ALL_ATTRIBUTES',
   };
+
+  // Add userId filter if available
+  if (userIdPresent && req.apiGateway && req.apiGateway.event.requestContext.identity.cognitoIdentityId) {
+    params.FilterExpression = 'userId = :userId';
+    params.ExpressionAttributeValues = {
+      ':userId': req.apiGateway.event.requestContext.identity.cognitoIdentityId
+    };
+  }
 
   try {
     const data = await ddbDocClient.send(new ScanCommand(params));

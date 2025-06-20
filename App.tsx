@@ -25,6 +25,12 @@ const API_BASE_URL = 'https://0snjzvy2ca.execute-api.us-east-1.amazonaws.com/dev
 interface IceCreamFlavor {
   id: string;
   name: string;
+  userId?: string;
+}
+
+interface User {
+  username: string;
+  email: string;
 }
 
 function App(): React.JSX.Element {
@@ -33,6 +39,105 @@ function App(): React.JSX.Element {
   const [iceCreamList, setIceCreamList] = useState<IceCreamFlavor[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingFlavor, setAddingFlavor] = useState(false);
+  
+  // Simple authentication states (local only for now)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  // Sign in/up states
+  const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
+  const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Load ice cream flavors when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchIceCreamFlavors();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Simple local authentication (for demo purposes)
+  const signInUser = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      // Simple validation - in real app this would call AWS Cognito
+      if (password.length >= 8) {
+        setIsAuthenticated(true);
+        setUser({
+          username: email,
+          email: email,
+        });
+        setIsSignInModalVisible(false);
+        setEmail('');
+        setPassword('');
+      } else {
+        Alert.alert('Error', 'Password must be at least 8 characters');
+      }
+    } catch (error: any) {
+      Alert.alert('Sign In Error', error.message || 'Failed to sign in');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const signUpUser = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      // Simple account creation - in real app this would call AWS Cognito
+      Alert.alert(
+        'Success',
+        'Account created! You can now sign in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setIsSignUpModalVisible(false);
+              setIsSignInModalVisible(true);
+              setEmail('');
+              setPassword('');
+              setConfirmPassword('');
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Sign Up Error', error.message || 'Failed to create account');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const signOutUser = async () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setIceCreamList([]);
+    setLoading(false);
+  };
 
   // Fetch ice cream flavors from API
   const fetchIceCreamFlavors = async () => {
@@ -41,7 +146,11 @@ function App(): React.JSX.Element {
       const response = await fetch(`${API_BASE_URL}/icecream`);
       if (response.ok) {
         const data = await response.json();
-        setIceCreamList(data || []);
+        // Filter data by userId if user is authenticated
+        const userData = user?.email 
+          ? data.filter((item: IceCreamFlavor) => item.userId === user.email)
+          : data;
+        setIceCreamList(userData || []);
       } else {
         Alert.alert('Error', 'Failed to load ice cream flavors');
       }
@@ -51,11 +160,6 @@ function App(): React.JSX.Element {
       setLoading(false);
     }
   };
-
-  // Load flavors on app start
-  useEffect(() => {
-    fetchIceCreamFlavors();
-  }, []);
 
   // Add new ice cream flavor to API
   const addIceCream = async () => {
@@ -91,7 +195,7 @@ function App(): React.JSX.Element {
       return;
     }
     
-    // Check if flavor already exists (case-insensitive)
+    // Check if flavor already exists (case-insensitive) in user's list
     const flavorExists = iceCreamList.some(
       flavor => flavor.name.toLowerCase() === trimmedFlavor.toLowerCase()
     );
@@ -116,6 +220,7 @@ function App(): React.JSX.Element {
       const newFlavorData = {
         id: newId,
         name: trimmedFlavor,
+        userId: user?.email || 'anonymous',
       };
       
       const response = await fetch(`${API_BASE_URL}/icecream`, {
@@ -190,6 +295,144 @@ function App(): React.JSX.Element {
     </View>
   );
 
+  // Show authentication screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.authContainer}>
+          <Text style={styles.authTitle}>Ice Cream App</Text>
+          <Text style={styles.authSubtitle}>Sign in to manage your ice cream flavors</Text>
+          
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => setIsSignInModalVisible(true)}>
+            <Text style={styles.authButtonText}>Sign In</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.authButtonSecondary}
+            onPress={() => setIsSignUpModalVisible(true)}>
+            <Text style={styles.authButtonSecondaryText}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign In Modal */}
+        <Modal
+          visible={isSignInModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsSignInModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Sign In</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!authLoading}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={true}
+                editable={!authLoading}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.cancelButton, authLoading && styles.disabledButton]} 
+                  onPress={() => {
+                    setIsSignInModalVisible(false);
+                    setEmail('');
+                    setPassword('');
+                  }}
+                  disabled={authLoading}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.saveButton, authLoading && styles.disabledButton]} 
+                  onPress={signInUser}
+                  disabled={authLoading}>
+                  {authLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Sign In</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Sign Up Modal */}
+        <Modal
+          visible={isSignUpModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsSignUpModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Create Account</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!authLoading}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password (min 8 characters)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={true}
+                editable={!authLoading}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={true}
+                editable={!authLoading}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.cancelButton, authLoading && styles.disabledButton]} 
+                  onPress={() => {
+                    setIsSignUpModalVisible(false);
+                    setEmail('');
+                    setPassword('');
+                    setConfirmPassword('');
+                  }}
+                  disabled={authLoading}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.saveButton, authLoading && styles.disabledButton]} 
+                  onPress={signUpUser}
+                  disabled={authLoading}>
+                  {authLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Sign Up</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
+
+  // Show main app if authenticated
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -204,13 +447,23 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ice Cream List</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setIsModalVisible(true)}>
-          <Text style={styles.plusIcon}>+</Text>
-          <Text style={styles.buttonText}>Add</Text>
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Ice Cream List</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+        </View>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setIsModalVisible(true)}>
+            <Text style={styles.plusIcon}>+</Text>
+            <Text style={styles.buttonText}>Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={signOutUser}>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -283,6 +536,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  authContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  authTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FF69B4',
+    marginBottom: 10,
+  },
+  authSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  authButton: {
+    backgroundColor: '#FF69B4',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginBottom: 15,
+    width: '100%',
+  },
+  authButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  authButtonSecondary: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#FF69B4',
+    width: '100%',
+  },
+  authButtonSecondaryText: {
+    color: '#FF69B4',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -296,6 +596,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FF69B4',
   },
+  userEmail: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,6 +612,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
+    marginRight: 10,
   },
   plusIcon: {
     fontSize: 18,
@@ -312,6 +622,17 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  signOutButton: {
+    backgroundColor: '#ff4757',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  signOutButtonText: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
   },
